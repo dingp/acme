@@ -1,4 +1,4 @@
-# How to use acme-bot
+# How to setup a Cronjob in Rancher for renewing TLS certificate
 
 There are two different use cases depending on if you have a web server running in your namespace, and if you also have write access to the web root.
 
