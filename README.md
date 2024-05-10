@@ -89,3 +89,8 @@ The detailed steps of setting this up are:
 4. Once the Cronjob is configured, you can trigger a run by hand, and verify it the settings are correct.
     - In the Workload -> Cronjobs window, click the three dots on the the right side of the page for the newly configured Cronjob, click "Run Now";
     - In the Workload -> Jobs window, you can click on the three dots for the job you just triggered, and select "View Logs" to check if the TLS certificate is issued successfully.
+
+## Additional notes
+
+1. This can be applied when there are multiple web servers in the same namespace. Every web server will need an Ingress controller, and a Cronjob for renewing the TLS certificate.
+2. The Ingress controller created by the script in Case 2 can be freely modified later if real web server is added in the namespace. It will not be overwritten but preserved during future runs of the Cronjob.
