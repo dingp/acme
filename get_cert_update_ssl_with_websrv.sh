@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 check_env_variable() {
 	if [ -z "${!1}" ]; then
 		echo "Error: $1 environment variable is not set."

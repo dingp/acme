@@ -13,7 +13,7 @@ In this case, you already have a web server and ingress set up in your namespace
 
 Here are the steps you need to setup a cronjob to obtain/update the certificate:
 1. Download `kubeconfig` from Rancher webUI (click the "page" icon);
-2. Create an Opaque type secret by uploading the downloaded kubeconfig file, set the key to `kubeconfig`;
+2. Create an Opaque type secret, set the key to `kubeconfig`, and copy the content of the downloaded YAML from the last step in to the Value field;
 3. Create a Cronjob:
     - Give it a unique name, and set the schedule to be once every two months, e.g. put `5 12  1 */2 *` in the `Schedule` field;
     - In POD -> Storage, click "Add Volume", select "Persistent Volume Claim", choose the existing volume `webroot-pvc`;

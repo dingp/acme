@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 check_env_variable() {
 	if [ -z "${!1}" ]; then
 		echo "Error: $1 environment variable is not set."
@@ -71,9 +69,9 @@ cat <<EOF >> /tmp/ssl_ingress.yaml
 EOF
 
 # Backup existing ingress
-/opt/kubectl get ingress -n ${NAMESPACE} ${INGRESS_NAME} -o jsonpath='{.items[0].metadata.name}'
-if [ $? -ne 0 ]; then
-	echo "Info: Ingress not found, will keep new ingress"
+# Check if ingress controller exists
+if ! /opt/kubectl get ingress -n ${NAMESPACE} ${INGRESS_NAME} >/dev/null 2>&1; then
+  echo "Info: Ingress not found, will keep new ingress"
 else
 	echo "Info: ingress found, backup"
 	/opt/kubectl get ingress -n ${NAMESPACE} ${INGRESS_NAME} -o json |jq 'del(
@@ -86,7 +84,7 @@ else
     .status,
     .metadata.__clone
 )' > /tmp/existing_ingress.json
-cp /tmp/existing_ingress.json /ssl
+  cp /tmp/existing_ingress.json /ssl
 fi
 
 
