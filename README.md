@@ -192,9 +192,6 @@ spec:
         - mountPath: /www
           name: vol-mypvc
         workingDir: /www
-      dnsPolicy: ClusterFirst
-      restartPolicy: Always
-      schedulerName: default-scheduler
       securityContext:
         fsGroup: <my GID>
       volumes:
