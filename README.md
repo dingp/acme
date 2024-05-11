@@ -94,3 +94,125 @@ The detailed steps of setting this up are:
 
 1. This can be applied when there are multiple web servers in the same namespace. Every web server will need an Ingress controller, and a Cronjob for renewing the TLS certificate.
 2. The Ingress controller created by the script in Case 2 can be freely modified later if real web server is added in the namespace. It will not be overwritten but preserved during future runs of the Cronjob.
+
+## Using `kubectl`
+
+### Install and config `kubectl`
+
+`kubectl` can be obtained via:
+
+```
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && chmod +x kubectl
+```
+
+The default path to `kubeconfig` is under `$HOME/.kube/config`. One can also specify the path via the `KUBECONFIG` environment variable, or the option `--kubeconfig <path to config file>`. 
+
+### Create a Persistent Volume Claim using dynamical NFS provisioner
+
+Using `kubectl --kubeconfig <path to kubeconfig> apply -f ./mypvc-name.yaml` will create:
+1. a Persistent Volume Claim (PVC) named "mypvc-name" using the `nfs-client` storage class;
+2. a Persistent Volume pointing to a newly created directory on the NFS server will be created and associated to the PVC;
+3. the PV has a size of 1GiB as requested by the PVC.
+
+Here is the content of `mypvc-name.yaml`. You may change the values of `metadata.name`, `metadata.namespace` and `spec.resources.requests.storage`.
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mypvc-name
+  namespace: my-namespace
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: nfs-client
+  volumeMode: Filesystem
+```
+
+### Create a Deployment
+
+The following YAML specifies a Deployment which 
+1. has one container named `container-0` running in its POD;
+2. `container-0` is run as the user with the specified UID `<my UID>`;
+3. uses the `mypvc-name` PVC created above, and mount it to `/www` in `container-0`;
+4. runs a web server with python to serve the `/www` directory in `container-0`.
+
+Use `kubectl apply -f <path to yaml>` to create the deployment.
+
+Note that you will need to change strings like `my-namespace`, `my-workload`, `mypvc-name`, `vol-mypvc`, and replace `<my UID>` and `<my GID>` in the YAML first.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+  labels:
+    workloadselector: my-namespace-my-workload
+  name: my-workload
+  namespace: my-namespace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      workloadselector: my-namespace-my-workload
+  template:
+    metadata:
+      labels:
+        workloadselector: my-namespace-my-workload
+      namespace: my-namespace
+    spec:
+      containers:
+      - args:
+        - -m
+        - http.server
+        - "8080"
+        command:
+        - python3
+        image: python:latest
+        imagePullPolicy: Always
+        name: container-0
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        resources: {}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: false
+          runAsUser: <my UID>
+        volumeMounts:
+        - mountPath: /www
+          name: vol-mypvc
+        workingDir: /www
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        fsGroup: <my GID>
+      volumes:
+      - name: vol-mypvc
+        persistentVolumeClaim:
+          claimName: mypvc-name
+```
+
+### Create a secret for `kubeconfig`
+
+This can be done via:
+
+```
+ kubectl -n <my-namespace> create secret generic <secret name> --from-file=kubeconfig=<path to kubeconfig file>
+```
+
+Fill in `<secret name>` and `<path to kubeconfig file>` accordingly.
+
+### Create an ingress
+
+### Create a Cronjob
