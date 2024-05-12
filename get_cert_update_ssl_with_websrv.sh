@@ -39,6 +39,7 @@ done
 	--home /tmp/acme \
 	--issue -f \
 	${ACME_DOMAINS} \
+	--server letsencrypt \
 	-w ${WEB_ROOT}
 
 CERT_PATH=/tmp/acme/${FIRST_DOMAIN}_ecc/fullchain.cer
