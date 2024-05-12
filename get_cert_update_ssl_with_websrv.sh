@@ -32,6 +32,13 @@ fi
 
 # Obtain certificate
 for domain in "${DOMAIN_ARRAY[@]}"; do
+	if ! curl --head --silent --fail "$domain"; then
+		echo "Error: Domain $domain does not exist."
+		echo "Error: Please make sure the domain is correct and accessible."
+		echo "Error: If the domain is correct, please make sure you wait enough time for the DNS to reflect the change."
+		echo "Error: you can use 'dig +short $domain' to check the IP address of the domain."
+		exit 1
+	fi
 	ACME_DOMAINS+=" -d $domain"
 done
 
@@ -46,11 +53,22 @@ KEY_PATH=$ACME_HOME/${FIRST_DOMAIN}_ecc/${FIRST_DOMAIN}.key
 	--server letsencrypt \
 	-w ${WEB_ROOT}
 
+# exit 1 if the previous command fails
+if [ $? -ne 0 ]; then
+	echo "Error: obtaining certificate from Let's Encrypt failed."
+	exit 1
+fi
+
 # update TLS secret
-/opt/kubectl \
-	-n ${NAMESPACE} \
-	create secret tls ${CERT_SECRET_NAME} \
-	--cert=$CERT_PATH \
-	--key=${KEY_PATH} \
-	--dry-run=client --save-config -o yaml | \
-	/opt/kubectl apply -f -
+if [[ -f $CERT_PATH && -f $KEY_PATH ]]; then
+	/opt/kubectl \
+		-n ${NAMESPACE} \
+		create secret tls ${CERT_SECRET_NAME} \
+		--cert=$CERT_PATH \
+		--key=${KEY_PATH} \
+		--dry-run=client --save-config -o yaml | \
+		/opt/kubectl apply -f -
+else
+	echo "Error: $CERT_PATH or $KEY_PATH does not exist."
+	exit 1
+fi
