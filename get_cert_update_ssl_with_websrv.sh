@@ -39,7 +39,7 @@ CERT_PATH=$ACME_HOME/${FIRST_DOMAIN}_ecc/fullchain.cer
 KEY_PATH=$ACME_HOME/${FIRST_DOMAIN}_ecc/${FIRST_DOMAIN}.key
 
 if ! [ -f $CERT_PATH ]; then
-  /opt/acme/acme.sh --install -m $EMAIL
+  /opt/acme/acme.sh --install --home $ACME_HOME --nocron -m $EMAIL
 fi
 
 
