@@ -13,7 +13,7 @@ check_env_variable "KUBECONFIG"
 check_env_variable "CERT_SECRET_NAME"
 check_env_variable "WEB_ROOT"
 check_env_variable "INGRESS_NAME"
-check_env_variable "ACME_HOME"
+ACME_HOME=/tmp/acme
 
 NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
 CLUSTER=$(/opt/kubectl config current-context)
@@ -37,11 +37,6 @@ done
 
 CERT_PATH=$ACME_HOME/${FIRST_DOMAIN}_ecc/fullchain.cer
 KEY_PATH=$ACME_HOME/${FIRST_DOMAIN}_ecc/${FIRST_DOMAIN}.key
-
-if ! [ -f $CERT_PATH ]; then
-  /opt/acme/acme.sh --install --home $ACME_HOME --nocron -m $EMAIL
-fi
-
 
 /opt/acme/acme.sh \
 	--register-account -m $EMAIL \
