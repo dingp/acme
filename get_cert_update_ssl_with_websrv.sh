@@ -42,9 +42,6 @@ for domain in "${DOMAIN_ARRAY[@]}"; do
 	ACME_DOMAINS+=" -d $domain"
 done
 
-CERT_PATH=$ACME_HOME/${FIRST_DOMAIN}_ecc/fullchain.cer
-KEY_PATH=$ACME_HOME/${FIRST_DOMAIN}_ecc/${FIRST_DOMAIN}.key
-
 /opt/acme/acme.sh \
 	--register-account -m $EMAIL \
 	--home $ACME_HOME \
@@ -58,6 +55,9 @@ if [ $? -ne 0 ]; then
 	echo "Error: obtaining certificate from Let's Encrypt failed."
 	exit 1
 fi
+
+CERT_PATH=$ACME_HOME/${FIRST_DOMAIN}_ecc/fullchain.cer
+KEY_PATH=$ACME_HOME/${FIRST_DOMAIN}_ecc/${FIRST_DOMAIN}.key
 
 # update TLS secret
 if [[ -f $CERT_PATH && -f $KEY_PATH ]]; then
