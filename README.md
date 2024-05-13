@@ -107,7 +107,7 @@ curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stabl
 
 The default path to `kubeconfig` is under `$HOME/.kube/config`. One can also specify the path via the `KUBECONFIG` environment variable, or the option `--kubeconfig <path to config file>`. 
 
-### Create a Persistent Volume Claim using dynamical NFS provisioner
+### Create a Persistent Volume Claim using dynamic NFS provisioner
 
 Using `kubectl --kubeconfig <path to kubeconfig> apply -f ./mypvc-name.yaml` will create:
 1. a Persistent Volume Claim (PVC) named "mypvc-name" using the `nfs-client` storage class;
