@@ -6,6 +6,11 @@ check_env_variable() {
 		exit 1
 	fi
 }
+restore_existing_ingress() {
+	if [ -f /tmp/existing_ingress.json ]; then
+		/opt/kubectl apply -f /tmp/existing_ingress.json
+	fi
+}
 
 check_env_variable "EMAIL"
 check_env_variable "DOMAIN"
@@ -86,6 +91,7 @@ for domain in "${DOMAIN_ARRAY[@]}"; do
 		echo "Error: Please make sure the domain is correct and accessible."
 		echo "Error: If the domain is correct, please make sure you wait enough time for the DNS to reflect the change."
 		echo "Error: you can use 'dig +short $domain' to check the IP address of the domain."
+		restore_existing_ingress
 		exit 1
 	fi
 	ACME_DOMAINS+=" -d $domain"
@@ -103,6 +109,7 @@ ACME_HOME=/tmp/acme
 # exit 1 if the previous command fails
 if [ $? -ne 0 ]; then
 	echo "Error: obtaining certificate from Let's Encrypt failed."
+	restore_existing_ingress
 	exit 1
 fi
 
@@ -120,10 +127,9 @@ if [[ -f $CERT_PATH && -f $KEY_PATH ]]; then
 		/opt/kubectl apply -f -
 else
 	echo "Error: $CERT_PATH or $KEY_PATH does not exist."
+	restore_existing_ingress
 	exit 1
 fi
 
 # Restore ingress if it exists
-if [ -f /tmp/existing_ingress.json ]; then
-	/opt/kubectl apply -f /tmp/existing_ingress.json
-fi
+restore_existing_ingress
