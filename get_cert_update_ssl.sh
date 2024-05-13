@@ -74,7 +74,6 @@ else
     .status,
     .metadata.__clone
 )' > /tmp/existing_ingress.json
-  cp /tmp/existing_ingress.json /ssl
 fi
 
 # Apply new ingress for issuing TLS certificate
@@ -92,6 +91,7 @@ for domain in "${DOMAIN_ARRAY[@]}"; do
 	ACME_DOMAINS+=" -d $domain"
 done
 
+ACME_HOME=/tmp/acme
 /opt/acme/acme.sh \
 	--register-account -m $EMAIL \
 	--home $ACME_HOME \
