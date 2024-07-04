@@ -210,7 +210,9 @@ This can be done via:
 
 Fill in `<secret name>` and `<path to kubeconfig file>` accordingly.
 
-### Create an ingress
+### Create an 
+
+
 
 ### Create a Cronjob
 
