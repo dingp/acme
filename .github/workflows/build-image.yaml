@@ -1,4 +1,4 @@
-name: Build c8 docker image
+name: Build acme docker image
 
 on:
   #schedule:
