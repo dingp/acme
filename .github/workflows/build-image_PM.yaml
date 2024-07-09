@@ -30,8 +30,8 @@ jobs:
           cp ${{ github.workspace }}/acme/*.sh $build_dir
           podman-hpc build -t ghcr.io/dingp/acme:latest -f Dockerfile .
 
-      - name: Log in to the Container registry and push the image
-        run: |
-          podman-hpc login -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
-          podman-hpc push ghcr.io/dingp/acme:latest
+          #- name: Log in to the Container registry and push the image
+          #run: |
+          #podman-hpc login -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+          #podman-hpc push ghcr.io/dingp/acme:latest
       
