@@ -22,7 +22,7 @@ RUN \
     chmod +x ${KUBECTL}
 
 COPY get_cert_update_ssl.sh /opt/get_cert_update_ssl.sh
-RUN chmod +x /opt/get_cert_update_ssl.sh
+RUN chmod +rx /opt/get_cert_update_ssl.sh
 
 COPY get_cert_update_ssl_with_websrv.sh /opt/get_cert_update_ssl_with_websrv.sh
-RUN chmod +x /opt/get_cert_update_ssl_with_websrv.sh
+RUN chmod +rx /opt/get_cert_update_ssl_with_websrv.sh
