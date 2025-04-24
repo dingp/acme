@@ -84,6 +84,9 @@ fi
 # Apply new ingress for issuing TLS certificate
 /opt/kubectl apply -f /tmp/ssl_ingress.yaml
 
+echo "sleep for 10s for the ingress change to propagate"
+sleep 10
+
 # Obtain certificate
 for domain in "${DOMAIN_ARRAY[@]}"; do
 	if ! curl --head --silent --fail "$domain"; then
