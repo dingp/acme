@@ -5,11 +5,12 @@ There are two different use cases depending on if you have a web server running 
 ## Case 1 - existing web server, write access to web root can be obtained
 
 In this case, you already have a web server and ingress set up in your namespace. Let's assume you are using the following names:
-    - namespace is `example-ns`;
-    - workload for the web server is `websrv-wl`;
-    - ingress is named as `site-ig`;
-    - your custome domain name is `site-ig.myowndomain.net`
-    - your web server's web root is on a Persistent Volume with the PVC name as `webroot-pvc` 
+
+- namespace is `example-ns`;
+- workload for the web server is `websrv-wl`;
+- ingress is named as `site-ig`;
+- your custome domain name is `site-ig.myowndomain.net`
+- your web server's web root is on a Persistent Volume with the PVC name as `webroot-pvc` 
 
 Here are the steps you need to setup a cronjob to obtain/update the certificate:
 1. Download `kubeconfig` from Rancher webUI (click the "page" icon);
@@ -28,7 +29,7 @@ Here are the steps you need to setup a cronjob to obtain/update the certificate:
             - `EMAIL` -> `<your_email>`
             - `DOMAIN` -> `<your domain name>` (multiple domain names can be separated by `:`), e.g. `site-ig.myowndomain.net;site-ig.example-ns.development.svc.spin.nersc.org`;
             - `KUBECONFIG` -> `/kube/kubeconfig` (assuming you mounted the secret to `/kube` and the secret has the key `kubeconfig`);
-            - `CERT_SECRET_NAME` -> <create a name for your secret holding the TLS certificate>
+            - `CERT_SECRET_NAME` -> `<create a name for your secret holding the TLS certificate>`, you will need to edit your ingress (under 'Certificates') to apply this once the secret is created.
             - `INGRESS_NAME` -> `<your ingress name>` (e.g. `site-ig`)
             - `WEB_ROOT` -> `<path to web root>` (e.g. `/ssl/www` if that's the root directory served by your web server).
     - Click "Save"
