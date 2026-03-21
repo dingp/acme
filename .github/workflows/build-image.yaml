@@ -27,7 +27,7 @@ jobs:
           path: acme
       
       - name: Log in to the Container registry
-        uses: docker/login-action@v4
+        uses: docker/login-action@0123456789abcdef0123456789abcdef01234567
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
