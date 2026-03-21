@@ -35,7 +35,7 @@ jobs:
       
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@2e4f4c2e3aa8b0ca5956574a1a278e6b8980c97f # v6
         with:
           images: |
             ghcr.io/dingp/acme
