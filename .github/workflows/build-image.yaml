@@ -56,7 +56,7 @@ jobs:
       - name: Build and push Docker images
         uses: docker/build-push-action@v7
         with:
-          context: ${{ github.workspace }}/acme
+          context: ${{ github.workspace }}/docker-build
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
