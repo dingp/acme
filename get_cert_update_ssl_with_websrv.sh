@@ -32,6 +32,9 @@ fi
 
 # Obtain certificate
 for domain in "${DOMAIN_ARRAY[@]}"; do
+	if [[ "$domain" == "$DEFAULT_DOMAIN" ]]; then
+		continue
+	fi
 	if ! curl --head --silent --fail "$domain"; then
 		echo "Error: Domain $domain does not exist."
 		echo "Error: Please make sure the domain is correct and accessible."
