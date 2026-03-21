@@ -24,16 +24,17 @@ check_env_variable "DUMMY_WEBSERVER"
 NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
 CLUSTER=$(/opt/kubectl config current-context)
 FIRST_DOMAIN=$(echo $DOMAIN | cut -d':' -f1)
-DEFAULT_DOMAIN=$INGRESS_NAME.$NAMESPACE.${CLUSTER}.svc.spin.nersc.org
+USER_DOMAIN_LIST=$DOMAIN
+SPIN_DOMAIN=$INGRESS_NAME.$NAMESPACE.${CLUSTER}.svc.spin.nersc.org
 
-if [[ $DOMAIN == *:* ]]; then
-	IFS=':' read -ra DOMAIN_ARRAY <<< "$DOMAIN"
+if [[ $USER_DOMAIN_LIST == *:* ]]; then
+	IFS=':' read -ra DOMAIN_ARRAY <<< "$USER_DOMAIN_LIST"
 else
-	DOMAIN_ARRAY=("$DOMAIN")
+	DOMAIN_ARRAY=("$USER_DOMAIN_LIST")
 fi
 
-if [[ ! " ${DOMAIN_ARRAY[@]} " =~ " ${DEFAULT_DOMAIN} " ]]; then
-	DOMAIN_ARRAY+=("${DEFAULT_DOMAIN}")
+if [[ ! " ${DOMAIN_ARRAY[@]} " =~ " ${SPIN_DOMAIN} " ]]; then
+	DOMAIN_ARRAY+=("${SPIN_DOMAIN}")
 fi
 
 # create ingress yaml for issuing TLS certificate
@@ -89,7 +90,7 @@ sleep 10
 
 # Obtain certificate
 for domain in "${DOMAIN_ARRAY[@]}"; do
-	if [[ "$domain" == "$DEFAULT_DOMAIN" ]]; then
+	if [[ "$domain" == "$SPIN_DOMAIN" ]]; then
 		continue
 	fi
 	if ! curl --head --silent --fail "$domain"; then

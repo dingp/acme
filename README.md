@@ -27,7 +27,7 @@ Here are the steps you need to setup a cronjob to obtain/update the certificate:
         * `Command` -> `/opt/get_cert_update_ssl_with_websrv.sh`
         * Add the following environment variables:
             - `EMAIL` -> `<your_email>`
-            - `DOMAIN` -> `<your domain name>` (multiple domain names can be separated by `:`), e.g. `site-ig.myowndomain.net`; the renewal logic skips the auto-created `*.svc.spin.nersc.org` hostname when requesting the certificate, even if that hostname is present in the managed domain list.
+            - `DOMAIN` -> `<your domain name>` (multiple domain names can be separated by `:`), e.g. `site-ig.myowndomain.net`; provide only your user-facing domains here. The script derives the internal `*.svc.spin.nersc.org` hostname automatically and excludes it from the certificate request.
             - `KUBECONFIG` -> `/kube/kubeconfig` (assuming you mounted the secret to `/kube` and the secret has the key `kubeconfig`);
             - `CERT_SECRET_NAME` -> `<create a name for your secret holding the TLS certificate>`, you will need to edit your ingress (under 'Certificates') to apply this once the secret is created.
             - `INGRESS_NAME` -> `<your ingress name>` (e.g. `site-ig`)
@@ -48,7 +48,7 @@ In this case, you will need to create a deployment running a simple web server, 
     - download the configuration in JSON format;
     - use `jq` to remove Rancher's annotations/status;
     - save the output into a JSON file, ready to be be reapplied via `kubectl`;
-2. prepare a YAML file to configure the ingress for the domain names specified in the `$DOMAIN` environment variable, and also ensure the auto-created `*.svc.spin.nersc.org` hostname is present in the ingress; when requesting the certificate, that auto-created hostname is skipped even if it is present in the domain list;
+2. prepare a YAML file to configure the ingress for the user-facing domains specified in the `$DOMAIN` environment variable, and also add the auto-created `*.svc.spin.nersc.org` hostname internally for ingress access; the certificate request still excludes that internal hostname;
 3. apply the newly prepared ingress via `kubectl`;
 4. obtain the TLS certificate;
 5. create/update the secret holding the TLS certificate;
@@ -80,7 +80,7 @@ The detailed steps of setting this up are:
         * `Command` -> `/opt/get_cert_update_ssl.sh`
         * Add the following environment variables:
             - `EMAIL` -> `<your_email>`
-            - `DOMAIN` -> `<your domain name>` (multiple domain names can be separated by `:`), e.g. `site-ig.myowndomain.net`; the renewal logic skips the auto-created `*.svc.spin.nersc.org` hostname when requesting the certificate, even if that hostname is present in the managed domain list.
+            - `DOMAIN` -> `<your domain name>` (multiple domain names can be separated by `:`), e.g. `site-ig.myowndomain.net`; provide only your user-facing domains here. The script derives the internal `*.svc.spin.nersc.org` hostname automatically and excludes it from the certificate request.
             - `KUBECONFIG` -> `/kube/kubeconfig` (assuming you mounted the secret to `/kube` and the secret has the key `kubeconfig`);
             - `CERT_SECRET_NAME` -> <create a name for your secret holding the TLS certificate>
             - `INGRESS_NAME` -> `<your ingress name>` (e.g. `site-ig`)
