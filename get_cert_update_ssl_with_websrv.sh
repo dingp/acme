@@ -16,18 +16,12 @@ check_env_variable "INGRESS_NAME"
 ACME_HOME=/tmp/acme
 
 NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
-CLUSTER=$(/opt/kubectl config current-context)
 FIRST_DOMAIN=$(echo $DOMAIN | cut -d':' -f1)
-DEFAULT_DOMAIN=$INGRESS_NAME.$NAMESPACE.${CLUSTER}.svc.spin.nersc.org
 
 if [[ $DOMAIN == *:* ]]; then
 	IFS=':' read -ra DOMAIN_ARRAY <<< "$DOMAIN"
 else
 	DOMAIN_ARRAY=("$DOMAIN")
-fi
-
-if [[ ! " ${DOMAIN_ARRAY[@]} " =~ " ${DEFAULT_DOMAIN} " ]]; then
-	DOMAIN_ARRAY+=("${DEFAULT_DOMAIN}")
 fi
 
 # Obtain certificate
