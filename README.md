@@ -85,10 +85,10 @@ The detailed steps of setting this up are:
             - `CERT_SECRET_NAME` -> <create a name for your secret holding the TLS certificate>
             - `INGRESS_NAME` -> `<your ingress name>` (e.g. `site-ig`)
             - `WEB_ROOT` -> `<path to web root>` (e.g. `/ssl/www` if that's the root directory served by your web server),
-            - `DUMMY_WEBSERVER` -> `<Work load name from step 1>` (e.g. `dummy-websrv`)
+            - `DUMMY_WEBSERVER` -> `<dummy web server Service name>` (e.g. `dummy-websrv`). This must be the Service name used by the Ingress backend, not necessarily the Deployment/workload name.
         * Optional environment variables:
-            - `DUMMY_WEBSERVER_DEPLOYMENT` -> deployment name for the dummy web server if it differs from `DUMMY_WEBSERVER`;
-            - `DUMMY_WEBSERVER_SCALE_REPLICAS` -> number of replicas to use when temporarily scaling up a dummy web server that is currently at `0` replicas; defaults to `1`;
+            - `DUMMY_WEBSERVER_DEPLOYMENT` -> deployment name for the dummy web server to scale if it differs from the `DUMMY_WEBSERVER` Service name; if the Service and Deployment have the same name, you can omit this variable;
+            - `DUMMY_WEBSERVER_SCALE_REPLICAS` -> number of replicas to use when temporarily scaling up a dummy web server deployment that is currently at `0` replicas; defaults to `1`;
             - `DUMMY_WEBSERVER_READY_TIMEOUT` -> rollout wait timeout for the dummy web server deployment; defaults to `60s`.
     - Click "Save"
 4. Once the Cronjob is configured, you can trigger a run by hand, and verify it the settings are correct.
