@@ -15,7 +15,10 @@ restore_existing_ingress() {
 scale_down_dummy_webserver_if_needed() {
 	if [ "${SCALED_DUMMY_WEBSERVER:-false}" = "true" ] && [ "${ORIGINAL_DUMMY_WEBSERVER_REPLICAS:-}" = "0" ]; then
 		echo "Info: scaling dummy webserver deployment ${DUMMY_WEBSERVER_DEPLOYMENT} back to 0 replicas"
-		/opt/kubectl -n "${NAMESPACE}" scale deployment "${DUMMY_WEBSERVER_DEPLOYMENT}" --replicas=0
+		if ! /opt/kubectl -n "${NAMESPACE}" scale deployment "${DUMMY_WEBSERVER_DEPLOYMENT}" --replicas=0; then
+			echo "Error: failed to scale dummy webserver deployment ${DUMMY_WEBSERVER_DEPLOYMENT} back to 0 replicas."
+			exit 1
+		fi
 	fi
 }
 
