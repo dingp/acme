@@ -27,7 +27,7 @@ cleanup() {
 ensure_dummy_webserver_ready() {
 	if ! /opt/kubectl get deployment -n "${NAMESPACE}" "${DUMMY_WEBSERVER_DEPLOYMENT}" >/dev/null 2>&1; then
 		echo "Error: dummy webserver deployment ${DUMMY_WEBSERVER_DEPLOYMENT} was not found in namespace ${NAMESPACE}."
-		echo "Error: set DUMMY_WEBSERVER_DEPLOYMENT if the deployment name differs from DUMMY_WEBSERVER."
+		echo "Error: DUMMY_WEBSERVER_DEPLOYMENT controls the Kubernetes Deployment name checked here; DUMMY_WEBSERVER is the dummy webserver Service / Ingress backend name. Set DUMMY_WEBSERVER_DEPLOYMENT if the Deployment name differs from the Service name."
 		exit 1
 	fi
 
