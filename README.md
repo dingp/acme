@@ -86,6 +86,10 @@ The detailed steps of setting this up are:
             - `INGRESS_NAME` -> `<your ingress name>` (e.g. `site-ig`)
             - `WEB_ROOT` -> `<path to web root>` (e.g. `/ssl/www` if that's the root directory served by your web server),
             - `DUMMY_WEBSERVER` -> `<Work load name from step 1>` (e.g. `dummy-websrv`)
+        * Optional environment variables:
+            - `DUMMY_WEBSERVER_DEPLOYMENT` -> deployment name for the dummy web server if it differs from `DUMMY_WEBSERVER`;
+            - `DUMMY_WEBSERVER_SCALE_REPLICAS` -> number of replicas to use when temporarily scaling up a dummy web server that is currently at `0` replicas; defaults to `1`;
+            - `DUMMY_WEBSERVER_READY_TIMEOUT` -> rollout wait timeout for the dummy web server deployment; defaults to `60s`.
     - Click "Save"
 4. Once the Cronjob is configured, you can trigger a run by hand, and verify it the settings are correct.
     - In the Workload -> Cronjobs window, click the three dots on the the right side of the page for the newly configured Cronjob, click "Run Now";
@@ -95,6 +99,7 @@ The detailed steps of setting this up are:
 
 1. This can be applied when there are multiple web servers in the same namespace. Every web server will need an Ingress controller, and a Cronjob for renewing the TLS certificate.
 2. The Ingress controller created by the script in Case 2 can be freely modified later if real web server is added in the namespace. It will not be overwritten but preserved during future runs of the Cronjob.
+3. For Case 2, the dummy web server deployment can normally be scaled to `0`. The renewal script records the deployment's original replica count, scales it up only when needed, waits for the rollout to become available, and scales it back to `0` at the end if it started at `0`.
 
 ## Using `kubectl`
 
@@ -216,4 +221,3 @@ Fill in `<secret name>` and `<path to kubeconfig file>` accordingly.
 
 
 ### Create a Cronjob
-
