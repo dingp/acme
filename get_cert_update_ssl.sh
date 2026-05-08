@@ -77,6 +77,11 @@ DUMMY_WEBSERVER_READY_TIMEOUT=${DUMMY_WEBSERVER_READY_TIMEOUT:-60s}
 SCALED_DUMMY_WEBSERVER=false
 ORIGINAL_DUMMY_WEBSERVER_REPLICAS=""
 
+if ! [[ "${DUMMY_WEBSERVER_SCALE_REPLICAS}" =~ ^[1-9][0-9]*$ ]]; then
+	echo "Error: DUMMY_WEBSERVER_SCALE_REPLICAS must be an integer greater than or equal to 1. Current value: ${DUMMY_WEBSERVER_SCALE_REPLICAS}"
+	exit 1
+fi
+
 trap cleanup EXIT
 
 if [[ $USER_DOMAIN_LIST == *:* ]]; then
