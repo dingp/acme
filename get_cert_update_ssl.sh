@@ -12,6 +12,51 @@ restore_existing_ingress() {
 	fi
 }
 
+scale_down_dummy_webserver_if_needed() {
+	if [ "${SCALED_DUMMY_WEBSERVER:-false}" = "true" ] && [ "${ORIGINAL_DUMMY_WEBSERVER_REPLICAS:-}" = "0" ]; then
+		echo "Info: scaling dummy webserver deployment ${DUMMY_WEBSERVER_DEPLOYMENT} back to 0 replicas"
+		if ! /opt/kubectl -n "${NAMESPACE}" scale deployment "${DUMMY_WEBSERVER_DEPLOYMENT}" --replicas=0; then
+			echo "Error: failed to scale dummy webserver deployment ${DUMMY_WEBSERVER_DEPLOYMENT} back to 0 replicas."
+			exit 1
+		fi
+	fi
+}
+
+cleanup() {
+	restore_existing_ingress
+	scale_down_dummy_webserver_if_needed
+}
+
+ensure_dummy_webserver_ready() {
+	if ! /opt/kubectl get deployment -n "${NAMESPACE}" "${DUMMY_WEBSERVER_DEPLOYMENT}" >/dev/null 2>&1; then
+		echo "Error: dummy webserver deployment ${DUMMY_WEBSERVER_DEPLOYMENT} was not found in namespace ${NAMESPACE}."
+		echo "Error: DUMMY_WEBSERVER_DEPLOYMENT controls the Kubernetes Deployment name checked here; DUMMY_WEBSERVER is the dummy webserver Service / Ingress backend name. Set DUMMY_WEBSERVER_DEPLOYMENT if the Deployment name differs from the Service name."
+		exit 1
+	fi
+
+	ORIGINAL_DUMMY_WEBSERVER_REPLICAS=$(/opt/kubectl get deployment -n "${NAMESPACE}" "${DUMMY_WEBSERVER_DEPLOYMENT}" -o jsonpath='{.spec.replicas}')
+	if [ -z "${ORIGINAL_DUMMY_WEBSERVER_REPLICAS}" ]; then
+		ORIGINAL_DUMMY_WEBSERVER_REPLICAS=1
+	fi
+
+	if [ "${ORIGINAL_DUMMY_WEBSERVER_REPLICAS}" = "0" ]; then
+		echo "Info: dummy webserver deployment ${DUMMY_WEBSERVER_DEPLOYMENT} is scaled to 0; scaling to ${DUMMY_WEBSERVER_SCALE_REPLICAS}"
+		if ! /opt/kubectl -n "${NAMESPACE}" scale deployment "${DUMMY_WEBSERVER_DEPLOYMENT}" --replicas="${DUMMY_WEBSERVER_SCALE_REPLICAS}"; then
+			echo "Error: failed to scale dummy webserver deployment ${DUMMY_WEBSERVER_DEPLOYMENT}."
+			exit 1
+		fi
+		SCALED_DUMMY_WEBSERVER=true
+	else
+		echo "Info: dummy webserver deployment ${DUMMY_WEBSERVER_DEPLOYMENT} already has ${ORIGINAL_DUMMY_WEBSERVER_REPLICAS} replicas configured."
+	fi
+
+	echo "Info: waiting for dummy webserver deployment ${DUMMY_WEBSERVER_DEPLOYMENT} to become available"
+	if ! /opt/kubectl -n "${NAMESPACE}" rollout status deployment "${DUMMY_WEBSERVER_DEPLOYMENT}" --timeout="${DUMMY_WEBSERVER_READY_TIMEOUT}"; then
+		echo "Error: dummy webserver deployment ${DUMMY_WEBSERVER_DEPLOYMENT} did not become ready within ${DUMMY_WEBSERVER_READY_TIMEOUT}."
+		exit 1
+	fi
+}
+
 check_env_variable "EMAIL"
 check_env_variable "DOMAIN"
 check_env_variable "KUBECONFIG"
@@ -26,6 +71,18 @@ CLUSTER=$(/opt/kubectl config current-context)
 FIRST_DOMAIN=$(echo $DOMAIN | cut -d':' -f1)
 USER_DOMAIN_LIST=$DOMAIN
 SPIN_DOMAIN=$INGRESS_NAME.$NAMESPACE.${CLUSTER}.svc.spin.nersc.org
+DUMMY_WEBSERVER_DEPLOYMENT=${DUMMY_WEBSERVER_DEPLOYMENT:-$DUMMY_WEBSERVER}
+DUMMY_WEBSERVER_SCALE_REPLICAS=${DUMMY_WEBSERVER_SCALE_REPLICAS:-1}
+DUMMY_WEBSERVER_READY_TIMEOUT=${DUMMY_WEBSERVER_READY_TIMEOUT:-60s}
+SCALED_DUMMY_WEBSERVER=false
+ORIGINAL_DUMMY_WEBSERVER_REPLICAS=""
+
+if ! [[ "${DUMMY_WEBSERVER_SCALE_REPLICAS}" =~ ^[1-9][0-9]*$ ]]; then
+	echo "Error: DUMMY_WEBSERVER_SCALE_REPLICAS must be an integer greater than or equal to 1. Current value: ${DUMMY_WEBSERVER_SCALE_REPLICAS}"
+	exit 1
+fi
+
+trap cleanup EXIT
 
 if [[ $USER_DOMAIN_LIST == *:* ]]; then
 	IFS=':' read -ra DOMAIN_ARRAY <<< "$USER_DOMAIN_LIST"
@@ -64,6 +121,8 @@ cat <<EOF >> /tmp/ssl_ingress.yaml
 EOF
 done
 
+ensure_dummy_webserver_ready
+
 # Backup existing ingress
 # Check if ingress controller exists
 if ! /opt/kubectl get ingress -n ${NAMESPACE} ${INGRESS_NAME} >/dev/null 2>&1; then
@@ -83,7 +142,10 @@ else
 fi
 
 # Apply new ingress for issuing TLS certificate
-/opt/kubectl apply -f /tmp/ssl_ingress.yaml
+if ! /opt/kubectl apply -f /tmp/ssl_ingress.yaml; then
+	echo "Error: failed to apply temporary ingress for issuing TLS certificate."
+	exit 1
+fi
 
 echo "sleep for 10s for the ingress change to propagate"
 sleep 10
@@ -98,7 +160,6 @@ for domain in "${DOMAIN_ARRAY[@]}"; do
 		echo "Error: Please make sure the domain is correct and accessible."
 		echo "Error: If the domain is correct, please make sure you wait enough time for the DNS to reflect the change."
 		echo "Error: you can use 'dig +short $domain' to check the IP address of the domain."
-		restore_existing_ingress
 		exit 1
 	fi
 	ACME_DOMAINS+=" -d $domain"
@@ -116,7 +177,6 @@ ACME_HOME=/tmp/acme
 # exit 1 if the previous command fails
 if [ $? -ne 0 ]; then
 	echo "Error: obtaining certificate from Let's Encrypt failed."
-	restore_existing_ingress
 	exit 1
 fi
 
@@ -134,9 +194,5 @@ if [[ -f $CERT_PATH && -f $KEY_PATH ]]; then
 		/opt/kubectl apply -f -
 else
 	echo "Error: $CERT_PATH or $KEY_PATH does not exist."
-	restore_existing_ingress
 	exit 1
 fi
-
-# Restore ingress if it exists
-restore_existing_ingress
