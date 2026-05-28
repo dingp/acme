@@ -51,7 +51,7 @@ ensure_dummy_webserver_ready() {
 	fi
 
 	echo "Info: waiting for dummy webserver deployment ${DUMMY_WEBSERVER_DEPLOYMENT} to become available"
-	if ! /opt/kubectl -n "${NAMESPACE}" rollout status deployment "${DUMMY_WEBSERVER_DEPLOYMENT}" --timeout="${DUMMY_WEBSERVER_READY_TIMEOUT}"; then
+	if ! /opt/kubectl -n "${NAMESPACE}" wait --for=condition=available deployment "${DUMMY_WEBSERVER_DEPLOYMENT}" --timeout="${DUMMY_WEBSERVER_READY_TIMEOUT}"; then
 		echo "Error: dummy webserver deployment ${DUMMY_WEBSERVER_DEPLOYMENT} did not become ready within ${DUMMY_WEBSERVER_READY_TIMEOUT}."
 		exit 1
 	fi
