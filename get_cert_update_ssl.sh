@@ -8,8 +8,50 @@ check_env_variable() {
 }
 restore_existing_ingress() {
 	if [ -f /tmp/existing_ingress.json ]; then
-		/opt/kubectl apply -f /tmp/existing_ingress.json
+		echo "Info: restoring original ingress ${INGRESS_NAME}"
+		if ! /opt/kubectl apply -f /tmp/existing_ingress.json; then
+			echo "Error: failed to restore original ingress ${INGRESS_NAME}."
+			return 1
+		fi
+		restore_existing_ingress_annotations
 	fi
+}
+
+restore_existing_ingress_annotations() {
+	local entry
+	local key
+	local value
+
+	if [ ! -f /tmp/existing_ingress.json ]; then
+		return 0
+	fi
+
+	while IFS= read -r entry; do
+		key=$(printf '%s' "$entry" | base64 -d | jq -r '.key')
+		value=$(printf '%s' "$entry" | base64 -d | jq -r '.value')
+		if [ -z "$key" ]; then
+			continue
+		fi
+
+		echo "Info: restoring ingress annotation ${key} on ${INGRESS_NAME}"
+		if ! /opt/kubectl -n "${NAMESPACE}" annotate ingress "${INGRESS_NAME}" "${key}=${value}" --overwrite; then
+			echo "Error: failed to restore ingress annotation ${key} on ${INGRESS_NAME}."
+			return 1
+		fi
+	done < <(jq -r '.metadata.annotations // {} | to_entries[] | @base64' /tmp/existing_ingress.json)
+}
+
+remove_temporary_ingress_annotations() {
+	local annotations
+	annotations=${TEMP_INGRESS_REMOVE_ANNOTATIONS:-nginx.ingress.kubernetes.io/whitelist-source-range}
+
+	for annotation in ${annotations//,/ }; do
+		if [ -z "$annotation" ]; then
+			continue
+		fi
+		echo "Info: temporarily removing ingress annotation ${annotation} from ${INGRESS_NAME}"
+		/opt/kubectl -n "${NAMESPACE}" annotate ingress "${INGRESS_NAME}" "${annotation}-" >/dev/null 2>&1 || true
+	done
 }
 
 scale_down_dummy_webserver_if_needed() {
@@ -130,10 +172,10 @@ if ! /opt/kubectl get ingress -n ${NAMESPACE} ${INGRESS_NAME} >/dev/null 2>&1; t
 else
 	echo "Info: ingress found, backup"
 	/opt/kubectl get ingress -n ${NAMESPACE} ${INGRESS_NAME} -o json |jq 'del(
-    .metadata.annotations,
+    .metadata.annotations."kubectl.kubernetes.io/last-applied-configuration",
     .metadata.creationTimestamp,
     .metadata.generation,
-    .metadata.labels,
+    .metadata.managedFields,
     .metadata.resourceVersion,
     .metadata.uid,
     .status,
@@ -146,6 +188,7 @@ if ! /opt/kubectl apply -f /tmp/ssl_ingress.yaml; then
 	echo "Error: failed to apply temporary ingress for issuing TLS certificate."
 	exit 1
 fi
+remove_temporary_ingress_annotations
 
 echo "sleep for 10s for the ingress change to propagate"
 sleep 10

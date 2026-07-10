@@ -46,13 +46,19 @@ The core functionality is done in the script `/opt/get_cert_update_ssl_with_webs
 In this case, you will need to create a deployment running a simple web server, serving a directory on a PVC. The script requesting the certificate will do more things:
 1. check if there's an existing ingress named `$INGRESS_NAME` in the namespace, if so:
     - download the configuration in JSON format;
-    - use `jq` to remove Rancher's annotations/status;
+    - use `jq` to remove volatile Kubernetes metadata/status while preserving
+      labels and useful annotations;
     - save the output into a JSON file, ready to be be reapplied via `kubectl`;
 2. prepare a YAML file to configure the ingress for the user-facing domains specified in the `$DOMAIN` environment variable, and also add the auto-created `*.svc.spin.nersc.org` hostname internally for ingress access; the certificate request still excludes that internal hostname;
-3. apply the newly prepared ingress via `kubectl`;
+3. apply the newly prepared ingress via `kubectl` and temporarily remove the
+   `nginx.ingress.kubernetes.io/whitelist-source-range` annotation, if present,
+   so Let's Encrypt HTTP-01 validation can reach the dummy web server;
 4. obtain the TLS certificate;
 5. create/update the secret holding the TLS certificate;
-6. reapply the original ingress if it was set up previously.
+6. reapply the original ingress, including its original source allowlist and
+   other annotations, if it was set up previously. The script also explicitly
+   replays the saved annotations after restoring the Ingress so annotations
+   removed for the HTTP-01 challenge are put back reliably.
 
 The detailed steps of setting this up are:
 1. create a new Deploymenet for a dummy web server,
@@ -90,6 +96,10 @@ The detailed steps of setting this up are:
             - `DUMMY_WEBSERVER_DEPLOYMENT` -> deployment name for the dummy web server to scale if it differs from the `DUMMY_WEBSERVER` Service name; if the Service and Deployment have the same name, you can omit this variable;
             - `DUMMY_WEBSERVER_SCALE_REPLICAS` -> number of replicas to use when temporarily scaling up a dummy web server deployment that is currently at `0` replicas; defaults to `1`;
             - `DUMMY_WEBSERVER_READY_TIMEOUT` -> rollout wait timeout for the dummy web server deployment; defaults to `60s`.
+            - `TEMP_INGRESS_REMOVE_ANNOTATIONS` -> comma-separated ingress
+              annotations to remove while the temporary challenge ingress is
+              active; defaults to
+              `nginx.ingress.kubernetes.io/whitelist-source-range`.
     - Click "Save"
 4. Once the Cronjob is configured, you can trigger a run by hand, and verify it the settings are correct.
     - In the Workload -> Cronjobs window, click the three dots on the the right side of the page for the newly configured Cronjob, click "Run Now";
