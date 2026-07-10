@@ -43,14 +43,34 @@ restore_existing_ingress_annotations() {
 
 remove_temporary_ingress_annotations() {
 	local annotations
+	local annotation_present
+	local ingress_json
 	annotations=${TEMP_INGRESS_REMOVE_ANNOTATIONS:-nginx.ingress.kubernetes.io/whitelist-source-range}
 
 	for annotation in ${annotations//,/ }; do
 		if [ -z "$annotation" ]; then
 			continue
 		fi
+
+		if ! ingress_json=$(/opt/kubectl -n "${NAMESPACE}" get ingress "${INGRESS_NAME}" -o json); then
+			echo "Error: failed to read ingress ${INGRESS_NAME} before removing temporary annotations."
+			return 1
+		fi
+
+		if ! annotation_present=$(printf '%s' "${ingress_json}" | jq -e --arg annotation "$annotation" '.metadata.annotations // {} | has($annotation)'); then
+			if [ "${annotation_present}" = "false" ]; then
+				echo "Info: ingress annotation ${annotation} is not present on ${INGRESS_NAME}; nothing to remove"
+				continue
+			fi
+			echo "Error: failed to check ingress annotation ${annotation} on ${INGRESS_NAME}."
+			return 1
+		fi
+
 		echo "Info: temporarily removing ingress annotation ${annotation} from ${INGRESS_NAME}"
-		/opt/kubectl -n "${NAMESPACE}" annotate ingress "${INGRESS_NAME}" "${annotation}-" >/dev/null 2>&1 || true
+		if ! /opt/kubectl -n "${NAMESPACE}" annotate ingress "${INGRESS_NAME}" "${annotation}-"; then
+			echo "Error: failed to temporarily remove ingress annotation ${annotation} from ${INGRESS_NAME}."
+			return 1
+		fi
 	done
 }
 
@@ -59,14 +79,23 @@ scale_down_dummy_webserver_if_needed() {
 		echo "Info: scaling dummy webserver deployment ${DUMMY_WEBSERVER_DEPLOYMENT} back to 0 replicas"
 		if ! /opt/kubectl -n "${NAMESPACE}" scale deployment "${DUMMY_WEBSERVER_DEPLOYMENT}" --replicas=0; then
 			echo "Error: failed to scale dummy webserver deployment ${DUMMY_WEBSERVER_DEPLOYMENT} back to 0 replicas."
-			exit 1
+			return 1
 		fi
 	fi
 }
 
 cleanup() {
-	restore_existing_ingress
-	scale_down_dummy_webserver_if_needed
+	local exit_code=$?
+
+	if ! restore_existing_ingress; then
+		exit_code=1
+	fi
+
+	if ! scale_down_dummy_webserver_if_needed; then
+		exit_code=1
+	fi
+
+	exit "${exit_code}"
 }
 
 ensure_dummy_webserver_ready() {
@@ -188,7 +217,9 @@ if ! /opt/kubectl apply -f /tmp/ssl_ingress.yaml; then
 	echo "Error: failed to apply temporary ingress for issuing TLS certificate."
 	exit 1
 fi
-remove_temporary_ingress_annotations
+if ! remove_temporary_ingress_annotations; then
+	exit 1
+fi
 
 echo "sleep for 10s for the ingress change to propagate"
 sleep 10

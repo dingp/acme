@@ -48,7 +48,7 @@ In this case, you will need to create a deployment running a simple web server, 
     - download the configuration in JSON format;
     - use `jq` to remove volatile Kubernetes metadata/status while preserving
       labels and useful annotations;
-    - save the output into a JSON file, ready to be be reapplied via `kubectl`;
+    - save the output into a JSON file, ready to be reapplied via `kubectl`;
 2. prepare a YAML file to configure the ingress for the user-facing domains specified in the `$DOMAIN` environment variable, and also add the auto-created `*.svc.spin.nersc.org` hostname internally for ingress access; the certificate request still excludes that internal hostname;
 3. apply the newly prepared ingress via `kubectl` and temporarily remove the
    `nginx.ingress.kubernetes.io/whitelist-source-range` annotation, if present,
