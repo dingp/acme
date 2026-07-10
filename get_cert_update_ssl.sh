@@ -13,7 +13,32 @@ restore_existing_ingress() {
 			echo "Error: failed to restore original ingress ${INGRESS_NAME}."
 			return 1
 		fi
+		restore_existing_ingress_annotations
 	fi
+}
+
+restore_existing_ingress_annotations() {
+	local entry
+	local key
+	local value
+
+	if [ ! -f /tmp/existing_ingress.json ]; then
+		return 0
+	fi
+
+	while IFS= read -r entry; do
+		key=$(printf '%s' "$entry" | base64 -d | jq -r '.key')
+		value=$(printf '%s' "$entry" | base64 -d | jq -r '.value')
+		if [ -z "$key" ]; then
+			continue
+		fi
+
+		echo "Info: restoring ingress annotation ${key} on ${INGRESS_NAME}"
+		if ! /opt/kubectl -n "${NAMESPACE}" annotate ingress "${INGRESS_NAME}" "${key}=${value}" --overwrite; then
+			echo "Error: failed to restore ingress annotation ${key} on ${INGRESS_NAME}."
+			return 1
+		fi
+	done < <(jq -r '.metadata.annotations // {} | to_entries[] | @base64' /tmp/existing_ingress.json)
 }
 
 remove_temporary_ingress_annotations() {

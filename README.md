@@ -56,7 +56,9 @@ In this case, you will need to create a deployment running a simple web server, 
 4. obtain the TLS certificate;
 5. create/update the secret holding the TLS certificate;
 6. reapply the original ingress, including its original source allowlist and
-   other annotations, if it was set up previously.
+   other annotations, if it was set up previously. The script also explicitly
+   replays the saved annotations after restoring the Ingress so annotations
+   removed for the HTTP-01 challenge are put back reliably.
 
 The detailed steps of setting this up are:
 1. create a new Deploymenet for a dummy web server,
